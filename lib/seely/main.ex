@@ -31,6 +31,11 @@ defmodule Seely.Main do
   @doc "Get the list of known controllers"
   def controllers(), do: call(:controllers)
 
+  @doc """
+  Get the controller list for a given session
+  """
+  def controllers(pid_or_name), do: call({:controllers, pid_or_name})
+
   @doc "Start a new session. Returns `{:ok, pid}` or `{:error, ...}`"
   def start_session(name), do: call({:start_session, name})
 
@@ -89,6 +94,10 @@ defmodule Seely.Main do
 
   @impl true
   def handle_call(:controllers, _, state) do
+    {:reply, Keyword.get(state, :controllers, []), state}
+  end
+
+  def handle_call({:controllers, pid}, _, state) when is_pid(pid) do
     {:reply, Keyword.get(state, :controllers, []), state}
   end
 

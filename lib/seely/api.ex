@@ -4,7 +4,10 @@ defmodule Seely.API do
   It defines all functions, depending on `Seely.Main`
   """
 
-  alias Seely.Main
+  alias Seely.{
+    Main,
+    Session
+  }
 
   def seely(),
     do: Main.seely()
@@ -12,13 +15,16 @@ defmodule Seely.API do
   def controllers(),
     do: Main.controllers()
 
+  def controllers(pid) when is_pid(pid),
+    do: Main.controllers(pid)
+
   def sessions(),
     do: Main.sessions()
 
-  def session(pid),
-    do: Main.session(pid)
+  def session(pid_or_name),
+    do: Main.session(pid_or_name)
 
-  def start_session(name),
+  def start_session(name) when is_binary(name),
     do: Main.start_session(name)
 
   def stop_sessions!(),
@@ -26,4 +32,7 @@ defmodule Seely.API do
 
   def session_name(pid) when is_pid(pid),
     do: Main.session_name(pid)
+
+  def execute(pid, controller, function, params) when is_pid(pid),
+    do: Session.execute(pid, controller, function, params)
 end
