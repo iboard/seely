@@ -7,9 +7,13 @@ defmodule Seely.MixProject do
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      elixirc_path: compiler_paths(Mix.env())
     ]
   end
+
+  def compiler_paths(:test), do: ["test/helpers"] ++ compiler_paths(:prod)
+  def compiler_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
   def application do

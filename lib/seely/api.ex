@@ -9,6 +9,9 @@ defmodule Seely.API do
   def seely(),
     do: Main.seely()
 
+  def controllers(),
+    do: Main.controllers()
+
   def sessions(),
     do: Main.sessions()
 

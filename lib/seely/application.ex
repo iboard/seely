@@ -6,9 +6,7 @@ defmodule Seely.Application do
   use Application
 
   def start(_type, _args) do
-    children = [
-      {Seely.Main, []}
-    ]
+    children = []
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

@@ -3,15 +3,20 @@ defmodule SeelyTest do
   doctest Seely
 
   import Seely.API
+  alias Seely.TestController
+
+  setup do
+    case Seely.start(TestController) do
+      {:ok, main} -> {:ok, main}
+      error -> raise "Can't start Seely with TestController. #{inspect(error)}"
+    end
+
+    :ok
+  end
 
   describe "Basic API" do
     setup do
       on_exit(fn -> stop_sessions!() end)
-
-      case Application.ensure_all_started(:seely) do
-        {:ok, _} -> :ok
-        error -> raise "Not all started #{inspect(error)}"
-      end
     end
 
     test "Main process started" do
@@ -42,16 +47,15 @@ defmodule SeelyTest do
       {:ok, session} = start_session("TestSession")
       assert session == session("TestSession")
     end
+
+    test ".controllers() gets the list of controllers known by `Main`" do
+      assert controllers() == [TestController]
+    end
   end
 
   describe "Session" do
     setup _ do
       on_exit(fn -> stop_sessions!() end)
-
-      case Application.ensure_all_started(:seely) do
-        {:ok, _} -> :ok
-        error -> raise "Not all started #{inspect(error)}"
-      end
 
       {:ok, session} = start_session("TestSession")
       {:ok, [session: session]}

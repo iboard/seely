@@ -25,4 +25,10 @@ defmodule Seely do
      end)
 
   """
+
+  alias Seely.Main
+
+  def start(controller) do
+    Main.start_link(controller)
+  end
 end

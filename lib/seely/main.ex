@@ -7,7 +7,9 @@ defmodule Seely.Main do
   use GenServer
   ######################################################################
   defp call(payload) do
-    GenServer.call(__MODULE__, payload)
+    if GenServer.whereis(__MODULE__),
+      do: GenServer.call(__MODULE__, payload),
+      else: {:error, "Server #{__MODULE__} not running"}
   end
 
   @doc """
@@ -25,6 +27,9 @@ defmodule Seely.Main do
   def seely() do
     GenServer.whereis(__MODULE__)
   end
+
+  @doc "Get the list of known controllers"
+  def controllers(), do: call(:controllers)
 
   @doc "Start a new session. Returns `{:ok, pid}` or `{:error, ...}`"
   def start_session(name), do: call({:start_session, name})
@@ -56,8 +61,12 @@ defmodule Seely.Main do
   ######################################################################
 
   @impl true
-  def init(_state) do
-    {:ok, [sessions: []]}
+  def init(controllers) when is_list(controllers) do
+    {:ok, [sessions: [], controllers: controllers]}
+  end
+
+  def init(controller) do
+    {:ok, [sessions: [], controllers: [controller]]}
   end
 
   @impl true
@@ -76,6 +85,11 @@ defmodule Seely.Main do
       error ->
         {:reply, error, state}
     end
+  end
+
+  @impl true
+  def handle_call(:controllers, _, state) do
+    {:reply, Keyword.get(state, :controllers, []), state}
   end
 
   @impl true
