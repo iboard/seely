@@ -33,4 +33,28 @@ defmodule ControllerTest do
     assert {:ok, "Hello, world!"} ==
              execute(sess, Seely.EchoController, :echo, ["Hello, world!"])
   end
+
+  test "execute a stream of commands", %{session: sess} do
+    commands = [
+      {Seely.EchoController, :echo, ["H1"]},
+      {Seely.EchoController, :echo, ["H2"]},
+      {Seely.EchoController, :echo, ["H3"]}
+    ]
+
+    result =
+      Stream.map(commands, & &1)
+      |> batch(sess)
+
+    expected = [
+      {:ok, "H1"},
+      {:ok, "H2"},
+      {:ok, "H3"}
+    ]
+
+    assert result == expected
+  end
+
+  test "execute string as command", %{session: sess} do
+    assert {:ok, "Hello, world!"} == execute(sess, "EchoController echo \"Hello, world!\"")
+  end
 end

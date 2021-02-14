@@ -23,8 +23,25 @@ defmodule Seely.Session do
   # API
   ######################################################################
 
+  def execute(pid, command) when is_pid(pid) and is_binary(command) do
+    # Prepare command
+    controller = Seely.EchoController
+    function = :echo
+    params = ["Hello"]
+    call(pid, {:execute, controller, function, params})
+  end
+
   def execute(pid, controller, function, params) when is_pid(pid) do
     call(pid, {:execute, controller, function, params})
+  end
+
+  def batch(pid, commands) do
+    results =
+      commands
+      |> Stream.map(fn {controller, function, params} ->
+        execute(pid, controller, function, params)
+      end)
+      |> Enum.to_list()
   end
 
   ######################################################################

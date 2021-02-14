@@ -35,4 +35,10 @@ defmodule Seely.API do
 
   def execute(pid, controller, function, params) when is_pid(pid),
     do: Session.execute(pid, controller, function, params)
+
+  def execute(pid, command) when is_pid(pid) and is_binary(command),
+    do: Session.execute(pid, command)
+
+  def batch(commands, pid) when is_pid(pid),
+    do: Session.batch(pid, commands)
 end
