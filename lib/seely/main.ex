@@ -2,6 +2,7 @@ defmodule Seely.Main do
   @moduledoc """
   The main process (GenServer) for the CLI global handling
   """
+  alias Seely.API
 
   ######################################################################
   use GenServer
@@ -14,9 +15,10 @@ defmodule Seely.Main do
 
   @doc """
   Start the Main GenServer. Usually done in `Application`
+  and/or test setups.
   """
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  def start_link(router_module) do
+    GenServer.start_link(__MODULE__, router_module, name: __MODULE__)
   end
 
   ######################################################################
@@ -28,13 +30,14 @@ defmodule Seely.Main do
     GenServer.whereis(__MODULE__)
   end
 
-  @doc "Get the list of known controllers"
-  def controllers(), do: call(:controllers)
+  @doc "Start the CLI loop"
+  def cli(_opts \\ []) do
+    {:ok, sess} = start_session("CLI")
+    loop(sess)
+  end
 
-  @doc """
-  Get the controller list for a given session
-  """
-  def controllers(pid_or_name), do: call({:controllers, pid_or_name})
+  @doc "Get the router"
+  def router(), do: call(:router)
 
   @doc "Start a new session. Returns `{:ok, pid}` or `{:error, ...}`"
   def start_session(name), do: call({:start_session, name})
@@ -66,79 +69,76 @@ defmodule Seely.Main do
   ######################################################################
 
   @impl true
-  def init(controllers) when is_list(controllers) do
-    {:ok, [sessions: [], controllers: controllers]}
-  end
-
-  def init(controller) do
-    {:ok, [sessions: [], controllers: [controller]]}
-  end
-
-  @impl true
-  def handle_call(:sessions, _, state) do
-    sessions = Keyword.get(state, :sessions, [])
-    {:reply, sessions, state}
+  def init(router_module) do
+    router_module
+    |> validate_router()
+    |> build_state()
   end
 
   @impl true
-  def handle_call({:start_session, name}, _, state) do
+  def handle_call(:router, _, router) do
+    router_module =
+      Keyword.get(router, :module, {:error, "Router not defined in #{inspect(router)}"})
+
+    {:reply, router_module, router}
+  end
+
+  @impl true
+  def handle_call(:sessions, _, router) do
+    sessions = Keyword.get(router, :sessions, [])
+    {:reply, sessions, router}
+  end
+
+  @impl true
+  def handle_call({:start_session, name}, _, router) do
     case Seely.Session.start_link(name) do
       {:ok, pid} ->
-        state = add_session(state, name, pid)
-        {:reply, {:ok, pid}, state}
+        router = add_session(router, name, pid)
+        {:reply, {:ok, pid}, router}
 
       error ->
-        {:reply, error, state}
+        {:reply, error, router}
     end
   end
 
   @impl true
-  def handle_call(:controllers, _, state) do
-    {:reply, Keyword.get(state, :controllers, []), state}
-  end
-
-  def handle_call({:controllers, pid}, _, state) when is_pid(pid) do
-    {:reply, Keyword.get(state, :controllers, []), state}
-  end
-
-  @impl true
-  def handle_call(:stop_sessions, _, state) do
-    list_sessions(state)
+  def handle_call(:stop_sessions, _, router) do
+    list_sessions(router)
     |> Enum.each(fn {_name, pid} ->
       GenServer.stop(pid)
     end)
 
-    state =
-      state
+    router =
+      router
       |> Keyword.put(:sessions, [])
 
-    {:reply, :ok, state}
+    {:reply, :ok, router}
   end
 
   @impl true
-  def handle_call({:session, pid}, _, state) when is_pid(pid) do
+  def handle_call({:session, pid}, _, router) when is_pid(pid) do
     pid_or_nil =
-      find_session_by(state, fn {_name, session_pid} ->
+      find_session_by(router, fn {_name, session_pid} ->
         session_pid == pid
       end)
 
-    {:reply, pid_or_nil, state}
+    {:reply, pid_or_nil, router}
   end
 
   @impl true
-  def handle_call({:session, name}, _, state) when is_binary(name) do
+  def handle_call({:session, name}, _, router) when is_binary(name) do
     pid_or_nil =
-      find_session_by(state, fn {sname, _session_pid} ->
+      find_session_by(router, fn {sname, _session_pid} ->
         sname == name
       end)
 
-    {:reply, pid_or_nil, state}
+    {:reply, pid_or_nil, router}
   end
 
   @impl true
-  def handle_call({:session_name, pid}, _, state) when is_pid(pid) do
+  def handle_call({:session_name, pid}, _, router) when is_pid(pid) do
     session_name =
-      state
+      router
       |> Keyword.get(:sessions, [])
       |> Enum.find(fn {_name, p} -> p == pid end)
       |> case do
@@ -146,17 +146,35 @@ defmodule Seely.Main do
         {found, _} -> found
       end
 
-    {:reply, session_name, state}
+    {:reply, session_name, router}
   end
 
   ######################################################################
   # Private Helpers
   ######################################################################
 
-  defp list_sessions(state), do: Keyword.get(state, :sessions, [])
+  defp validate_router(router_module) do
+    router = Seely.Router.new(router_module)
 
-  defp find_session_by(state, fun) do
-    state
+    if Keyword.get(router, :module, false) == router_module,
+      do: {:ok, router},
+      else: {:error, "Router is invalid. (#{inspect(router)})"}
+  end
+
+  defp build_state({:error, _} = e), do: e
+
+  defp build_state({:ok, router}) do
+    router =
+      router
+      |> Keyword.put_new(:sessions, [])
+
+    {:ok, router}
+  end
+
+  defp list_sessions(router), do: Keyword.get(router, :sessions, [])
+
+  defp find_session_by(router, fun) do
+    router
     |> Keyword.get(:sessions, [])
     |> Enum.find(fn s -> fun.(s) end)
     |> case do
@@ -165,10 +183,37 @@ defmodule Seely.Main do
     end
   end
 
-  defp add_session(state, name, pid) do
-    state
+  defp add_session(router, name, pid) do
+    router
     |> Keyword.update(:sessions, [], fn sessions ->
       [{name, pid} | sessions]
     end)
+  end
+
+  defp loop(session, cnt \\ 1) do
+    if prompt(cnt, session)
+       |> execute_cmd(cnt, session)
+       |> loop_or_stop(),
+       do: loop(session, cnt + 1)
+  end
+
+  defp prompt(cnt, session) do
+    IO.gets("#{session_name(session)} (#{cnt})>")
+    |> String.trim()
+  end
+
+  def execute_cmd(_, "exit", _session) do
+    API.stop_sessions!()
+    IO.puts("Goodbye!")
+    "exit"
+  end
+
+  def execute_cmd(command, cnt, session) do
+    API.execute(session, command)
+    |> IO.inspect(label: "##{cnt} =>")
+  end
+
+  defp loop_or_stop(cmd) do
+    cmd != "exit"
   end
 end

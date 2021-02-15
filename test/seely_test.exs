@@ -3,10 +3,9 @@ defmodule SeelyTest do
   doctest Seely
 
   import Seely.API
-  alias Seely.TestController
 
   setup do
-    case Seely.start(TestController) do
+    case Seely.start(TestRouter) do
       {:ok, main} -> {:ok, main}
       error -> raise "Can't start Seely with TestController. #{inspect(error)}"
     end
@@ -46,10 +45,6 @@ defmodule SeelyTest do
     test ".session(name) finds a session by name" do
       {:ok, session} = start_session("TestSession")
       assert session == session("TestSession")
-    end
-
-    test ".controllers() gets the list of controllers known by `Main`" do
-      assert controllers() == [TestController]
     end
   end
 

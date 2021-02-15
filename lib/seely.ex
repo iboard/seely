@@ -28,7 +28,7 @@ defmodule Seely do
 
   alias Seely.Main
 
-  def start(controller) do
-    Main.start_link(controller)
+  def start(router) do
+    Main.start_link(router)
   end
 end

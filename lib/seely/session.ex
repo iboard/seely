@@ -25,10 +25,10 @@ defmodule Seely.Session do
 
   def execute(pid, command) when is_pid(pid) and is_binary(command) do
     # Prepare command
-    controller = Seely.EchoController
-    function = :echo
-    params = ["Hello"]
-    call(pid, {:execute, controller, function, params})
+    {controller, function, params} = call(pid, {:parse, command})
+
+    apply(controller, function, params)
+    # call(pid, {:execute, controller, function, [command]})
   end
 
   def execute(pid, controller, function, params) when is_pid(pid) do
@@ -36,12 +36,11 @@ defmodule Seely.Session do
   end
 
   def batch(pid, commands) do
-    results =
-      commands
-      |> Stream.map(fn {controller, function, params} ->
-        execute(pid, controller, function, params)
-      end)
-      |> Enum.to_list()
+    commands
+    |> Stream.map(fn {controller, function, params} ->
+      execute(pid, controller, function, params)
+    end)
+    |> Enum.to_list()
   end
 
   ######################################################################
@@ -57,6 +56,14 @@ defmodule Seely.Session do
   def handle_call({:execute, controller, function, params}, _, state) do
     result = apply(controller, function, params)
     {:reply, result, state}
+  end
+
+  @impl true
+  def handle_call({:parse, command}, _, state) do
+    router = Seely.Main.router()
+    route = Seely.Router.parse(command, router)
+
+    {:reply, route, state}
   end
 
   ######################################################################

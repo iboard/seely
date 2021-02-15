@@ -12,11 +12,8 @@ defmodule Seely.API do
   def seely(),
     do: Main.seely()
 
-  def controllers(),
-    do: Main.controllers()
-
-  def controllers(pid) when is_pid(pid),
-    do: Main.controllers(pid)
+  def cli(),
+    do: Main.cli()
 
   def sessions(),
     do: Main.sessions()
