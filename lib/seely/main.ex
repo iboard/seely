@@ -1,7 +1,21 @@
 defmodule Seely.Main do
   @moduledoc """
-  The main process (GenServer) for the CLI global handling
+  The main process (GenServer) for the CLI global handling.
+
+  It is usually started from your Application's supervision tree as a child
+
+      def start(_type, _args) do
+        children = [
+          #...,
+          {Seely.Main, [YourRouter]}
+        ]
+
+        opts = [strategy: :one_for_one, name: YourApp.Supervisor]
+        Supervisor.start_link(children, opts)
+      end
+
   """
+
   alias Seely.API
 
   ######################################################################
@@ -14,8 +28,7 @@ defmodule Seely.Main do
   end
 
   @doc """
-  Start the Main GenServer. Usually done in `Application`
-  and/or test setups.
+  Start the Main GenServer with the given `router_module` (`YourRouter`)
   """
   def start_link(router_module) do
     GenServer.start_link(__MODULE__, router_module, name: __MODULE__)
@@ -30,13 +43,32 @@ defmodule Seely.Main do
     GenServer.whereis(__MODULE__)
   end
 
-  @doc "Start the CLI loop"
+  @doc ~s"""
+  Start the CLI loop
+
+  The user will see a prompt "CLI (count)>" where `count` is just a continues
+  counter for the command in this session, starting at 1.
+
+  When a route for the entered command can be find, it will be executed and the
+  result will be printed to stdio.
+
+  Unless the entered command is `exit`, the loop will repeat with the next prompt.
+
+  ### Example
+
+      iex> cli
+      CLI(1) echo Hello, world!
+      {:ok, "Hello, world!"}
+      CLI(2) exit
+      iex>
+
+  """
   def cli(_opts \\ []) do
     {:ok, sess} = start_session("CLI")
     loop(sess)
   end
 
-  @doc "Get the router"
+  @doc "Get the router of the main process"
   def router(), do: call(:router)
 
   @doc "Start a new session. Returns `{:ok, pid}` or `{:error, ...}`"
@@ -202,13 +234,13 @@ defmodule Seely.Main do
     |> String.trim()
   end
 
-  def execute_cmd(_, "exit", _session) do
+  defp execute_cmd("exit", _cnt, _session) do
     API.stop_sessions!()
     IO.puts("Goodbye!")
     "exit"
   end
 
-  def execute_cmd(command, cnt, session) do
+  defp execute_cmd(command, cnt, session) do
     API.execute(session, command)
     |> IO.inspect(label: "##{cnt} =>")
   end

@@ -1,8 +1,16 @@
 defmodule Seely.EchoController do
   @moduledoc """
-  A minimal implementation of a controller
+  The EchoController is used to echo whatever the user inputs after the command
+
+      CLI> echo "Hello, world!"
+      {:ok, "Hello, world!}
+
+  --upper and --trim are examples of options you can use.
   """
 
+  @doc ~s"""
+  Echo the `string`. Possible options are `--trim` and `--upper`
+  """
   def echo(string, opts \\ []) do
     output =
       string
@@ -14,7 +22,10 @@ defmodule Seely.EchoController do
     {:ok, output}
   end
 
-  def error(err, opts \\ []) do
+  @doc ~s"""
+  Return an error, wrapped in an error Tuple.
+  """
+  def error(err, _opts \\ []) do
     {:error, err}
   end
 
@@ -26,7 +37,7 @@ defmodule Seely.EchoController do
       else: str <> "(ignored options: #{inspect(ignored)})"
   end
 
-  defp format(str, _opts) when is_list(str), do: Enum.join(str)
+  defp format(str, _opts) when is_list(str), do: Enum.join(str, " ")
   defp format(str, _opts) when is_binary(str), do: str
 
   defp maybe_upper(str, opts) do
