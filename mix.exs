@@ -5,6 +5,8 @@ defmodule Seely.MixProject do
     [
       app: :seely,
       version: "0.1.0",
+      description: description(),
+      package: package(),
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -13,12 +15,26 @@ defmodule Seely.MixProject do
       # Docs
       name: "Seely",
       source_url: "https://github.com/iboard/seely",
-      homepage_url: "http://github.com/iboard/seely",
+      homepage_url: "https://hexdocs.pm/seely",
       docs: [
         # The main page in the docs
         main: "readme",
         extras: ["LICENSE.md", "README.md"]
       ]
+    ]
+  end
+
+  defp description() do
+    "A CLI package for Elixir"
+  end
+
+  defp package() do
+    [
+      licenses: ["MIT"],
+      links: %{
+        "Github" => "https://github.com/iboard/seely",
+        "Hex" => "https://hexdocs.pm/seely"
+      }
     ]
   end
 

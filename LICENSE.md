@@ -1,4 +1,7 @@
-Seely - A CLI framework for Elixir
+# MIT License
+
+*Seely - A CLI framework for Elixir*
+
 Copyright © 2021 Andreas Altendorfer, <andreas@altendorfer.at>
 
 Permission is hereby granted, free of charge, to any person obtaining
