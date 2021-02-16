@@ -63,6 +63,7 @@ defmodule ControllerTest do
     assert {:ok, "Copyright"} == execute(sess, ~s/copyright/)
     assert {:ok, "(c) 2021"} == execute(sess, ~s/copyright --year 2021/)
     assert {:ok, "(c) 2021 by eh me"} == execute(sess, ~s/copyright --year 2021 by eh me/)
+    assert {:ok, "Copyright eh by me"} == execute(sess, ~s/copyright " eh by me"/)
   end
 
   test "unknown command", %{session: sess} do
