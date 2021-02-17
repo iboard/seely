@@ -77,7 +77,7 @@ Since `Seely` is published on hex the documentation is on
     def start(_type, _args) do
       children = [
         #...,
-        {Seely.Main, [YourRouter]}
+        {Seely.Main, YourRouter}
       ]
 
       opts = [strategy: :one_for_one, name: YourApp.Supervisor]
